@@ -3,6 +3,7 @@
 const http = require("http");
 const fs = require("fs");
 const net = require("net");
+const crypto = require("crypto");
 
 const PORT = Number(process.env.PORT || 7861);
 const GATEWAY_PORT = Number(process.env.API_SERVER_PORT || 8642);
@@ -12,7 +13,9 @@ const GATEWAY_HOST = "127.0.0.1";
 const startTime = Date.now();
 const API_SERVER_KEY = process.env.API_SERVER_KEY || "";
 const APP_BASE = "/app";
-const AUTH_REALM = "HuggingMess";
+const LOGIN_PATH = "/login";
+const LOGOUT_PATH = "/logout";
+const SESSION_COOKIE = "huggingmess_session";
 
 const SYNC_STATUS_FILE = "/tmp/huggingmess-sync-status.json";
 const UPTIMEROBOT_STATUS_FILE = "/tmp/huggingmess-uptimerobot-status.json";
@@ -39,39 +42,206 @@ function readJson(path, fallback = null) {
   return fallback;
 }
 
+function timingSafeEqualString(left, right) {
+  if (!left || !right) return false;
+  const leftBuffer = Buffer.from(left);
+  const rightBuffer = Buffer.from(right);
+  if (leftBuffer.length !== rightBuffer.length) return false;
+  return crypto.timingSafeEqual(leftBuffer, rightBuffer);
+}
+
+function expectedSessionValue() {
+  if (!API_SERVER_KEY) return "";
+  return crypto
+    .createHmac("sha256", API_SERVER_KEY)
+    .update("huggingmess-session-v1")
+    .digest("hex");
+}
+
+function parseCookies(req) {
+  const header = req.headers.cookie || "";
+  const cookies = {};
+  for (const item of header.split(";")) {
+    const separator = item.indexOf("=");
+    if (separator < 0) continue;
+    const name = item.slice(0, separator).trim();
+    const value = item.slice(separator + 1).trim();
+    if (!name) continue;
+    try {
+      cookies[name] = decodeURIComponent(value);
+    } catch {
+      cookies[name] = value;
+    }
+  }
+  return cookies;
+}
+
+function isHttpsRequest(req) {
+  return req.headers["x-forwarded-proto"] === "https";
+}
+
+function buildSessionCookie(req) {
+  const secure = isHttpsRequest(req) ? "; Secure" : "";
+  return `${SESSION_COOKIE}=${encodeURIComponent(expectedSessionValue())}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${secure}`;
+}
+
+function buildClearSessionCookie(req) {
+  const secure = isHttpsRequest(req) ? "; Secure" : "";
+  return `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure}`;
+}
+
 function getBearerToken(req) {
   const value = req.headers.authorization || "";
   const match = /^Bearer\s+(.+)$/i.exec(value);
   return match ? match[1] : "";
 }
 
-function getBasicPassword(req) {
-  const value = req.headers.authorization || "";
-  const match = /^Basic\s+(.+)$/i.exec(value);
-  if (!match) return "";
-  try {
-    const decoded = Buffer.from(match[1], "base64").toString("utf8");
-    const separator = decoded.indexOf(":");
-    return separator >= 0 ? decoded.slice(separator + 1) : "";
-  } catch {
-    return "";
-  }
-}
-
 function isAuthorized(req) {
   if (!API_SERVER_KEY) return true;
-  return getBearerToken(req) === API_SERVER_KEY || getBasicPassword(req) === API_SERVER_KEY;
+  return (
+    timingSafeEqualString(getBearerToken(req), API_SERVER_KEY) ||
+    timingSafeEqualString(parseCookies(req)[SESSION_COOKIE], expectedSessionValue())
+  );
+}
+
+function sanitizeNext(value) {
+  if (!value || typeof value !== "string") return `${APP_BASE}/`;
+  if (!value.startsWith("/") || value.startsWith("//")) return `${APP_BASE}/`;
+  return value;
+}
+
+function loginUrl(nextPath) {
+  return `${LOGIN_PATH}?next=${encodeURIComponent(sanitizeNext(nextPath))}`;
+}
+
+function renderLoginPage(nextPath, errorMessage = "") {
+  const safeNext = sanitizeNext(nextPath);
+  const errorHtml = errorMessage ? `<div class="error">${escapeHtml(errorMessage)}</div>` : "";
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HuggingMess Login</title>
+  <style>
+    :root { color-scheme: dark; --bg:#10141f; --panel:#171d2b; --line:#293246; --text:#f4f7fb; --muted:#9aa7bd; --bad:#ef4444; --accent:#38bdf8; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; display:grid; place-items:center; font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); padding:20px; }
+    main { width:min(440px, 100%); border:1px solid var(--line); background:var(--panel); border-radius:8px; padding:28px; }
+    h1 { margin:0 0 8px; font-size:1.55rem; letter-spacing:0; }
+    p { margin:0 0 22px; color:var(--muted); line-height:1.5; }
+    label { display:block; color:var(--muted); font-size:.82rem; margin-bottom:8px; }
+    input { width:100%; min-height:46px; border:1px solid var(--line); border-radius:7px; background:#0b0f18; color:var(--text); padding:0 12px; font:inherit; }
+    button { width:100%; min-height:44px; margin-top:16px; border:0; border-radius:7px; color:#07111f; background:var(--accent); font:inherit; font-weight:750; cursor:pointer; }
+    .error { border:1px solid rgba(239,68,68,.4); background:rgba(239,68,68,.1); color:#fecaca; border-radius:7px; padding:10px 12px; margin-bottom:16px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Open HuggingMess</h1>
+    <p>Enter the <code>GATEWAY_TOKEN</code> from your Space secrets.</p>
+    ${errorHtml}
+    <form method="post" action="${LOGIN_PATH}">
+      <input type="hidden" name="next" value="${escapeHtml(safeNext)}" />
+      <label for="token">GATEWAY_TOKEN</label>
+      <input id="token" name="token" type="password" autocomplete="current-password" autofocus required />
+      <button type="submit">Continue</button>
+    </form>
+  </main>
+</body>
+</html>`;
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function readRequestBody(req, limit = 64 * 1024) {
+  return new Promise((resolve, reject) => {
+    let body = "";
+    req.on("data", (chunk) => {
+      body += chunk;
+      if (body.length > limit) {
+        reject(new Error("Request body is too large."));
+        req.destroy();
+      }
+    });
+    req.on("end", () => resolve(body));
+    req.on("error", reject);
+  });
 }
 
 function requireAuth(req, res) {
   if (isAuthorized(req)) return true;
-  res.writeHead(401, {
-    "content-type": "text/plain; charset=utf-8",
-    "www-authenticate": `Basic realm="${AUTH_REALM}", charset="UTF-8"`,
+  const parsed = new URL(req.url, "http://localhost");
+  redirect(res, loginUrl(`${parsed.pathname}${parsed.search}`));
+  return false;
+}
+
+async function handleLogin(req, res, parsed) {
+  const nextPath = sanitizeNext(parsed.searchParams.get("next") || `${APP_BASE}/`);
+
+  if (!API_SERVER_KEY) {
+    redirect(res, nextPath);
+    return;
+  }
+
+  if (req.method === "GET") {
+    res.writeHead(200, {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "no-store",
+    });
+    res.end(renderLoginPage(nextPath));
+    return;
+  }
+
+  if (req.method !== "POST") {
+    res.writeHead(405, { allow: "GET, POST" });
+    res.end("Method not allowed");
+    return;
+  }
+
+  try {
+    const body = await readRequestBody(req);
+    const params = new URLSearchParams(body);
+    const submittedToken = params.get("token") || "";
+    const submittedNext = sanitizeNext(params.get("next") || nextPath);
+
+    if (!timingSafeEqualString(submittedToken, API_SERVER_KEY)) {
+      res.writeHead(401, {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "no-store",
+      });
+      res.end(renderLoginPage(submittedNext, "That token did not match GATEWAY_TOKEN."));
+      return;
+    }
+
+    res.writeHead(302, {
+      location: submittedNext,
+      "set-cookie": buildSessionCookie(req),
+      "cache-control": "no-store",
+    });
+    res.end();
+  } catch (error) {
+    res.writeHead(400, {
+      "content-type": "text/plain; charset=utf-8",
+      "cache-control": "no-store",
+    });
+    res.end(error.message || "Invalid login request.");
+  }
+}
+
+function handleLogout(req, res) {
+  res.writeHead(302, {
+    location: LOGIN_PATH,
+    "set-cookie": buildClearSessionCookie(req),
     "cache-control": "no-store",
   });
-  res.end("Authentication required. Use any username and your GATEWAY_TOKEN as the password.");
-  return false;
+  res.end();
 }
 
 function proxyRequest(req, res, targetPort, rewritePath = (path) => path) {
@@ -220,6 +390,16 @@ const server = http.createServer(async (req, res) => {
   const parsed = new URL(req.url, "http://localhost");
   const path = parsed.pathname;
 
+  if (path === LOGIN_PATH) {
+    await handleLogin(req, res, parsed);
+    return;
+  }
+
+  if (path === LOGOUT_PATH) {
+    handleLogout(req, res);
+    return;
+  }
+
   if (path === "/health" || path === `${APP_BASE}/health`) {
     const data = await statusPayload();
     res.writeHead(data.ok ? 200 : 503, { "content-type": "application/json" });
@@ -293,7 +473,6 @@ const server = http.createServer(async (req, res) => {
     if (!isAuthorized(req)) {
       res.writeHead(401, {
         "content-type": "application/json",
-        "www-authenticate": `Bearer realm="${AUTH_REALM}"`,
         "cache-control": "no-store",
       });
       res.end(JSON.stringify({ error: "unauthorized", message: "Use Authorization: Bearer <GATEWAY_TOKEN>." }));

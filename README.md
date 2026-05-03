@@ -58,9 +58,9 @@ GATEWAY_TOKEN=your-strong-password-or-token
 
 Then:
 
-- Opening `/app/` asks for browser Basic Auth.
-- Use any username.
-- Use `GATEWAY_TOKEN` as the password.
+- Opening `/app/` shows a HuggingMess login page with one field.
+- Paste `GATEWAY_TOKEN` into that field.
+- HuggingMess stores an HTTP-only session cookie for the dashboard routes.
 - API routes under `/v1/*` accept `Authorization: Bearer <GATEWAY_TOKEN>`.
 
 ## LLM Providers
