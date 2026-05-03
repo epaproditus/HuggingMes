@@ -531,9 +531,6 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (path === "/health" || path === `${APP_BASE}/health`) {
-    if (req.headers["user-agent"] === "HuggingMess Cloudflare KeepAlive") {
-      console.log(`[${new Date().toISOString()}] Received keepalive ping from Cloudflare.`);
-    }
     const data = await statusPayload();
     res.writeHead(data.ok ? 200 : 503, { "content-type": "application/json" });
     res.end(
