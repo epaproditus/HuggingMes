@@ -9,204 +9,161 @@ pinned: true
 license: mit
 secrets:
   - name: LLM_API_KEY
-    description: "Your LLM provider API key. HuggingMess maps it to the right Hermes provider env var."
+    description: "Your LLM provider API key (e.g. Anthropic, OpenAI, Google, OpenRouter)."
   - name: LLM_MODEL
-    description: "Optional model ID override, e.g. openrouter/anthropic/claude-sonnet-4 or anthropic/claude-opus-4.6."
+    description: "Model ID to use, e.g. google/gemini-2.0-flash or openai/gpt-4o."
+  - name: GATEWAY_TOKEN
+    description: "Strong token to secure your dashboard and API (generate: openssl rand -hex 32)."
   - name: TELEGRAM_BOT_TOKEN
     description: "Telegram bot token from @BotFather."
   - name: TELEGRAM_ALLOWED_USERS
-    description: "Comma-separated numeric Telegram user IDs allowed to use the bot."
-  - name: GATEWAY_TOKEN
-    description: "Bearer token for the proxied Hermes API routes."
+    description: "Comma-separated list of numeric user IDs allowed to use the bot."
   - name: HF_TOKEN
-    description: "Hugging Face token with write access for private Dataset backup."
+    description: "Hugging Face token with write access. Used for automatic workspace backup."
   - name: CLOUDFLARE_WORKERS_TOKEN
-    description: "Cloudflare API token for automatic Telegram proxy and keep-awake Worker setup."
+    description: "Cloudflare API token for automatic Worker proxy and KeepAlive setup."
 ---
 
-# HuggingMess
+<!-- Badges -->
+[![GitHub Stars](https://img.shields.io/github/stars/NousResearch/hermes-agent?style=flat-square)](https://github.com/NousResearch/hermes-agent)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![HF Space](https://img.shields.io/badge/🤗%20HuggingFace-Space-blue?style=flat-square)](https://huggingface.co/spaces)
+[![Hermes](https://img.shields.io/badge/Hermes-Agent-indigo?style=flat-square)](https://github.com/NousResearch/hermes-agent)
 
-HuggingMess runs [Nous Research Hermes Agent](https://github.com/NousResearch/hermes-agent) as a Hugging Face Docker Space. It follows the same practical shape as HuggingClaw: one public Space port, Telegram gateway support, Cloudflare Worker proxy setup, Cloudflare cron keep-awake, and private HF Dataset backup for Hermes state.
+**Self-hosted Hermes AI agent gateway — free, no server needed.** HuggingMess runs [Nous Research Hermes Agent](https://github.com/NousResearch/hermes-agent) on HuggingFace Spaces, providing a 24/7 personal AI assistant. It includes a premium management dashboard, automatic persistent backup to HF Datasets, and built-in connectivity fixes to bypass platform restrictions. Deploy in minutes on the free HF Spaces tier with full data persistence.
 
-## Quick Start
+## Table of Contents
 
-1. Duplicate this Space or push this folder to a new Docker Space.
-2. Add these secrets in Space Settings:
+- [✨ Features](#-features)
+- [🚀 Quick Start](#-quick-start)
+- [🔐 Access Control](#-access-control)
+- [🤖 LLM Providers](#-llm-providers)
+- [📱 Telegram Setup](#-telegram-setup)
+- [🌐 Cloudflare Proxy](#-cloudflare-proxy)
+- [💾 Backup & Persistence](#-backup--persistence)
+- [💓 Staying Alive](#-staying-alive)
+- [🔐 Security & Advanced](#-security--advanced)
+- [💻 Local Development](#-local-development)
+- [🏗️ Architecture](#️-architecture)
+- [🐛 Troubleshooting](#-troubleshooting)
+- [🌟 More Projects](#-more-projects)
 
-| Secret | Required | Notes |
+## ✨ Features
+
+- 🧠 **Hermes Core:** Runs the powerful Hermes agent framework for multi-modal chat and tool use.
+- 🔐 **Secure by Default:** Adds a custom auth layer to protect the Hermes dashboard and API routes.
+- 🌐 **Built-in Connectivity:** Includes transparent outbound proxying via Cloudflare Workers for Telegram, Google APIs, and more.
+- 📊 **Premium Dashboard:** Beautiful Web UI at `/` for real-time monitoring of uptime, sync health, and agent status.
+- 💾 **Persistent Backup:** Automatically syncs agent state, chats, and config to a private HF Dataset.
+- ⏰ **Easy Keep-Alive:** Uses `CLOUDFLARE_WORKERS_TOKEN` to automatically set up a cron-triggered keep-awake worker at boot.
+- 🐳 **Optimized Infrastructure:** Minimal resource usage with clean startup logs and production-ready proxying.
+
+## 🚀 Quick Start
+
+### Step 1: Duplicate this Space
+
+[![Duplicate this Space](https://huggingface.co/datasets/huggingface/badges/resolve/main/duplicate-this-space-xl.svg)](https://huggingface.co/spaces/somratpro/HuggingMess?duplicate=true)
+
+### Step 2: Add Your Secrets
+
+Navigate to your new Space's **Settings → Variables and secrets**, and add the following three under **Secrets**:
+
+- `LLM_API_KEY` – Your provider API key (e.g., Anthropic, OpenAI, OpenRouter).
+- `LLM_MODEL` – The model ID string (e.g., `google/gemini-2.0-flash` or `openai/gpt-4o`).
+- `GATEWAY_TOKEN` – A custom password to secure your dashboard.
+
+### Step 3: Access Your Dashboard
+
+Once the build is complete, visit your Space's public URL. You will see the HuggingMess management dashboard. Click **Open Hermes UI** and enter your `GATEWAY_TOKEN` to access the agent interface.
+
+## 🔐 Access Control
+
+Hermes' built-in dashboard is local-first. HuggingMess adds a secure wrapper:
+
+- **Dashboard:** Opening `/app/` requires your `GATEWAY_TOKEN`.
+- **API:** Routes under `/v1/*` (OpenAI-compatible) require `Authorization: Bearer <GATEWAY_TOKEN>`.
+
+## 🤖 LLM Providers
+
+HuggingMess automatically maps your `LLM_MODEL` and `LLM_API_KEY` to the correct Hermes configuration.
+
+| Provider | Prefix | Example `LLM_MODEL` |
 | :--- | :--- | :--- |
-| `LLM_MODEL` | Optional | Model override. If unset, HuggingMess leaves Hermes default/restored config alone. |
-| `LLM_API_KEY` | Usually | Used to populate the provider-specific env var automatically |
-| `TELEGRAM_BOT_TOKEN` | For Telegram | Bot token from BotFather |
-| `TELEGRAM_ALLOWED_USERS` | Recommended | Comma-separated numeric Telegram user IDs |
-| `GATEWAY_TOKEN` | Recommended | Bearer token for `/v1/*` API routes |
-| `HF_TOKEN` | Optional | Enables private Dataset backup named `huggingmess-backup` |
-| `CLOUDFLARE_WORKERS_TOKEN` | Optional | Auto-creates Workers for Telegram proxy and `/health` keep-awake |
+| **Google** | `google/` | `google/gemini-2.0-flash` |
+| **OpenRouter** | `openrouter/` | `openrouter/anthropic/claude-3.5-sonnet` |
+| **Anthropic** | `anthropic/` | `anthropic/claude-3-opus-latest` |
+| **OpenAI** | `openai/` | `openai/gpt-4o` |
+| **HuggingFace** | `huggingface/` | `huggingface/meta-llama/Llama-3.3-70B-Instruct` |
 
-## Access Control
+## 📱 Telegram Setup *(Optional)*
 
-Hermes' built-in dashboard is local-first and does not provide its own public auth layer. HuggingMess adds wrapper-level auth for the exposed Space routes.
+To use Hermes via Telegram:
 
-Set this Space secret:
+1. Add `TELEGRAM_BOT_TOKEN` from [@BotFather](https://t.me/BotFather).
+2. Add `TELEGRAM_ALLOWED_USERS` (comma-separated numeric IDs) to restrict access.
+3. Add `CLOUDFLARE_WORKERS_TOKEN` to bypass HF network restrictions automatically.
 
-```text
-GATEWAY_TOKEN=your-strong-password-or-token
-```
+## 🌐 Cloudflare Proxy
 
-Then:
+HuggingFace Spaces often block outbound connections to external APIs. HuggingMess handles this automatically:
 
-- Opening `/app/` shows a HuggingMess login page with one field.
-- Paste `GATEWAY_TOKEN` into that field.
-- HuggingMess stores an HTTP-only session cookie for the dashboard routes.
-- API routes under `/v1/*` accept `Authorization: Bearer <GATEWAY_TOKEN>`.
+1. Add `CLOUDFLARE_WORKERS_TOKEN` as a Space secret.
+2. Restart the Space.
 
-## LLM Providers
+HuggingMess will auto-provision a Worker proxy for Telegram and other restricted traffic, and set up a keep-awake cron.
 
-HuggingMess supports two configuration styles:
+## 💾 Backup & Persistence
 
-1. **Simple wrapper style:** set `LLM_MODEL` and `LLM_API_KEY`; HuggingMess maps them into Hermes config and provider-specific API key variables.
-2. **Native Hermes style:** set Hermes variables directly, such as `HERMES_MODEL`, `HERMES_INFERENCE_PROVIDER`, and the provider API key.
+Set `HF_TOKEN` with **Write** access to enable backup. HuggingMess syncs all agent data to a private Dataset named `huggingmess-backup` every 180 seconds.
 
-### Gemini
+## 💓 Staying Alive *(Recommended on Free HF Spaces)*
 
-For Google Gemini, add these Space secrets:
+Your Space will automatically be kept awake by a background Cloudflare Worker when you configure the `CLOUDFLARE_WORKERS_TOKEN` secret. The worker uses a cron trigger to regularly ping your Space's `/health` endpoint. The dashboard displays the current keep-alive worker status.
 
-| Secret | Value |
-| :--- | :--- |
-| `LLM_MODEL` | `google/gemini-2.5-flash` |
-| `LLM_API_KEY` | Your Google AI Studio API key |
-
-HuggingMess will convert that into Hermes config:
-
-```yaml
-model:
-  default: gemini-2.5-flash
-  provider: gemini
-```
-
-And it exports both `GOOGLE_API_KEY` and `GEMINI_API_KEY` for Hermes. You can also use `gemini/gemini-2.5-flash`; the prefix is stripped the same way.
-
-Native Hermes equivalent:
-
-| Secret | Value |
-| :--- | :--- |
-| `HERMES_MODEL` | `gemini-2.5-flash` |
-| `HERMES_INFERENCE_PROVIDER` | `gemini` |
-| `GOOGLE_API_KEY` or `GEMINI_API_KEY` | Your Google AI Studio API key |
-
-### Common Examples
-
-| Provider | Simple `LLM_MODEL` | API key secret |
-| :--- | :--- | :--- |
-| Gemini | `google/gemini-2.5-flash` | `LLM_API_KEY` |
-| OpenRouter | `openrouter/anthropic/claude-sonnet-4` | `LLM_API_KEY` |
-| Anthropic | `anthropic/claude-opus-4.6` | `LLM_API_KEY` |
-| OpenAI | `openai/gpt-4o` | `LLM_API_KEY` |
-| Hugging Face Router | `huggingface/meta-llama/Llama-3.3-70B-Instruct` | `LLM_API_KEY` |
-
-## Telegram on HF Spaces
-
-When `TELEGRAM_BOT_TOKEN` and `SPACE_HOST` are present, HuggingMess defaults Telegram to webhook mode:
-
-```bash
-TELEGRAM_WEBHOOK_URL=https://your-space.hf.space/telegram
-TELEGRAM_WEBHOOK_PORT=8765
-```
-
-If you need polling instead, set:
-
-```bash
-TELEGRAM_MODE=polling
-```
-
-Hermes requires numeric Telegram IDs for allowlists. You can use either Hermes-native `TELEGRAM_ALLOWED_USERS` or the HuggingClaw-style aliases `TELEGRAM_USER_ID` / `TELEGRAM_USER_IDS`.
-
-## Cloudflare Workers
-
-Hugging Face Spaces can be restrictive for outbound bot API traffic. Add `CLOUDFLARE_WORKERS_TOKEN`, and HuggingMess will:
-
-1. create a Telegram proxy Worker,
-2. generate a shared proxy secret,
-3. set Hermes Telegram `base_url` to `https://worker.example.workers.dev/bot`,
-4. set `base_file_url` to `https://worker.example.workers.dev/file/bot`,
-5. create a second scheduled keep-awake Worker that pings your Space `/health` route.
-
-Manual mode is also supported:
-
-```bash
-CLOUDFLARE_PROXY_URL=https://your-worker.workers.dev
-CLOUDFLARE_PROXY_SECRET=optional-shared-secret
-```
-
-The manual Worker source is included in `cloudflare-worker.js`.
-
-### Keep Awake
-
-When `CLOUDFLARE_WORKERS_TOKEN` is present, HuggingMess creates a scheduled Worker that pings your Space's `/health` route. It automatically detects your Space hostname:
-
-```text
-https://your-space.hf.space/health
-```
-
-Default schedule:
-
-```text
-*/10 * * * *
-```
-
-Optional variables:
+## 🔐 Security & Advanced
 
 | Variable | Default | Description |
 | :--- | :--- | :--- |
-| `CLOUDFLARE_KEEPALIVE_ENABLED` | `true` | Set `false` to skip keep-awake Worker setup |
-| `CLOUDFLARE_KEEPALIVE_CRON` | `*/10 * * * *` | Cloudflare cron expression |
-| `CLOUDFLARE_KEEPALIVE_URL` | `https://<auto-detected-space-host>/health` | URL to ping |
-| `CLOUDFLARE_KEEPALIVE_WORKER_NAME` | derived from space host | Custom Worker name |
+| `GATEWAY_TOKEN` | — | Token for dashboard and API auth |
+| `HF_TOKEN` | — | HF token with write access for backups |
+| `CLOUDFLARE_WORKERS_TOKEN` | — | Cloudflare API token for proxy & keep-awake |
+| `SYNC_INTERVAL` | `180` | Backup frequency in seconds |
+| `CLOUDFLARE_KEEPALIVE_ENABLED` | `true` | Set `false` to disable keep-awake worker |
+| `TELEGRAM_MODE` | `webhook` | `webhook` or `polling` |
 
-## Backup
-
-Set `HF_TOKEN` with write access to enable backup. HuggingMess syncs `/opt/data` to a private Dataset named `huggingmess-backup` every 180 seconds by default.
-
-| Variable | Default | Description |
-| :--- | :--- | :--- |
-| `BACKUP_DATASET_NAME` | `huggingmess-backup` | Dataset name under your HF account |
-| `SYNC_INTERVAL` | `180` | Backup interval in seconds |
-| `SYNC_INCLUDE_ENV` | `false` | Include `/opt/data/.env` in backup |
-
-By default `.env` is excluded from backups because HF Space secrets are already injected at runtime.
-
-## Local Development
+## 💻 Local Development
 
 ```bash
 docker compose up --build
+# Dashboard: http://localhost:7861
+# Hermes App: http://localhost:7861/app/
 ```
 
-Then open:
+## 🏗️ Architecture
 
-```text
-http://localhost:7861
-```
+- **Dashboard (`/`)**: Real-time management and monitoring.
+- **Hermes App (`/app/`)**: Secure proxied access to the Hermes UI.
+- **API (`/v1/*`)**: Proxied OpenAI-compatible agent API.
+- **Health Check (`/health`)**: Readiness probe for HF and Keep-Alive.
+- **Sync Engine**: Python background task for HF Dataset persistence.
 
-## Useful Routes
+## 🐛 Troubleshooting
 
-| Route | Purpose |
-| :--- | :--- |
-| `/` | HuggingMess dashboard |
-| `/health` | Health check for HF and Cloudflare keep-awake |
-| `/status` | JSON status |
-| `/app/` | Proxied Hermes dashboard/app |
-| `/v1/*` | Proxied Hermes OpenAI-compatible API routes |
-| `/telegram` | Telegram webhook endpoint |
+- **Telegram bot not responding:** Ensure `CLOUDFLARE_WORKERS_TOKEN` is set. Check logs for "Setting up Cloudflare proxy".
+- **Authentication failed:** Clear your browser cookies or use an incognito window if your `GATEWAY_TOKEN` has changed.
+- **Data not persisting:** Ensure `HF_TOKEN` has **Write** permissions.
+- **Space keeps sleeping:** Add `CLOUDFLARE_WORKERS_TOKEN` as a Space secret to enable automatic keep-awake monitoring via Cloudflare Workers.
 
-The `/v1/*` routes require:
+## 🌟 More Projects
 
-```text
-Authorization: Bearer <GATEWAY_TOKEN>
-```
+Similar projects by [@somratpro](https://github.com/somratpro) — all free, one-click deploy on HF Spaces:
 
-## Links
+| Project | What it runs | HF Space | GitHub |
+| :--- | :--- | :--- | :--- |
+| **Hugging8n** | n8n — workflow & automation platform | [Space](https://huggingface.co/spaces/somratpro/Hugging8n) | [Repo](https://github.com/somratpro/hugging8n) |
+| **HuggingClaw** | OpenClaw — Claude Code in the browser | [Space](https://huggingface.co/spaces/somratpro/HuggingClaw) | [Repo](https://github.com/somratpro/huggingclaw) |
+| **HuggingClip** | Paperclip — AI agent orchestration platform | [Space](https://huggingface.co/spaces/somratpro/HuggingClip) | [Repo](https://github.com/somratpro/huggingclip) |
+| **HuggingPost** | Postiz — social-media scheduler | [Space](https://huggingface.co/spaces/somratpro/HuggingPost) | [Repo](https://github.com/somratpro/huggingpost) |
 
-- [Hermes Agent GitHub](https://github.com/NousResearch/hermes-agent)
-- [Hermes Agent Docs](https://hermes-agent.nousresearch.com/docs)
-- [Hermes Docker Docs](https://hermes-agent.nousresearch.com/docs/user-guide/docker/)
-- [Hermes Telegram Docs](https://hermes-agent.nousresearch.com/docs/user-guide/messaging/telegram)
+---
+*Made with ❤️ by [@somratpro](https://github.com/somratpro)*
