@@ -65,7 +65,10 @@ def render_keepalive_worker(target_url: str) -> str:
 }});
 
 addEventListener("scheduled", (event) => {{
-  event.waitUntil(ping("cron"));
+  event.waitUntil((async () => {{
+    const result = await ping("cron");
+    console.log("Keepalive ping executed:", JSON.stringify(result));
+  }})());
 }});
 
 const TARGET_URL = {json.dumps(target_url)};
