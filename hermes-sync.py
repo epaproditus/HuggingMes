@@ -96,7 +96,11 @@ def should_exclude(rel_posix: str, path: Path) -> bool:
         return True
     if any(part in EXCLUDED_DIRS for part in parts):
         return True
+    # Exclude SQLite temporary files (shm, wal, journal)
     if path.is_file():
+        name_lower = path.name.lower()
+        if name_lower.endswith((".db-shm", ".db-wal", ".db-journal")):
+            return True
         try:
             return path.stat().st_size > MAX_FILE_SIZE_BYTES
         except OSError:
@@ -153,7 +157,11 @@ def create_snapshot_dir(source_root: Path) -> Path:
             target.mkdir(parents=True, exist_ok=True)
             continue
         target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(path, target)
+        try:
+            shutil.copy2(path, target)
+        except OSError:
+            # File may have been deleted by the application since enumeration
+            continue
     return staging_root
 
 
