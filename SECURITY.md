@@ -1,6 +1,6 @@
 # Security
 
-HuggingMess runs a full agent gateway with tool access. Treat the Space and its secrets like a server.
+HuggingMes runs a full agent gateway with tool access. Treat the Space and its secrets like a server.
 
 ## Required Hardening
 

@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for improving HuggingMess.
+Thanks for improving HuggingMes.
 
 ## Local Checks
 

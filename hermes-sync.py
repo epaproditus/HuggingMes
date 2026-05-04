@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""HuggingMess Hermes state backup via Hugging Face Datasets."""
+"""HuggingMes Hermes state backup via Hugging Face Datasets."""
 
 import hashlib
 import json
@@ -22,13 +22,13 @@ from huggingface_hub.errors import HfHubHTTPError, RepositoryNotFoundError
 logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
 
 HERMES_HOME = Path(os.environ.get("HERMES_HOME", "/opt/data"))
-STATUS_FILE = Path("/tmp/huggingmess-sync-status.json")
+STATUS_FILE = Path("/tmp/huggingmes-sync-status.json")
 INTERVAL = int(os.environ.get("SYNC_INTERVAL", "180"))
 INITIAL_DELAY = int(os.environ.get("SYNC_START_DELAY", "10"))
 HF_TOKEN = os.environ.get("HF_TOKEN", "").strip()
 HF_USERNAME = os.environ.get("HF_USERNAME", "").strip()
 SPACE_AUTHOR_NAME = os.environ.get("SPACE_AUTHOR_NAME", "").strip()
-BACKUP_DATASET_NAME = os.environ.get("BACKUP_DATASET_NAME", "huggingmess-backup").strip()
+BACKUP_DATASET_NAME = os.environ.get("BACKUP_DATASET_NAME", "huggingmes-backup").strip()
 INCLUDE_ENV = os.environ.get("SYNC_INCLUDE_ENV", "").strip().lower() in {"1", "true", "yes"}
 MAX_FILE_SIZE_BYTES = int(os.environ.get("SYNC_MAX_FILE_BYTES", str(50 * 1024 * 1024)))
 
@@ -142,7 +142,7 @@ def fingerprint_dir(root: Path) -> str:
 
 
 def create_snapshot_dir(source_root: Path) -> Path:
-    staging_root = Path(tempfile.mkdtemp(prefix="huggingmess-sync-"))
+    staging_root = Path(tempfile.mkdtemp(prefix="huggingmes-sync-"))
     for path in sorted(source_root.rglob("*")):
         rel = path.relative_to(source_root)
         rel_posix = rel.as_posix()
@@ -237,7 +237,7 @@ def sync_once(last_fingerprint: str | None = None, last_marker: tuple[int, int, 
                 repo_id=repo_id,
                 repo_type="dataset",
                 token=HF_TOKEN,
-                commit_message=f"HuggingMess sync {time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}",
+                commit_message=f"HuggingMes sync {time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}",
                 ignore_patterns=[".git/*", ".git"],
             )
     finally:

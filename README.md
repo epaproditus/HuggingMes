@@ -1,6 +1,6 @@
 ---
-title: HuggingMess
-emoji: 📚
+title: HuggingMes
+emoji: ⚚
 colorFrom: blue
 colorTo: indigo
 sdk: docker
@@ -30,7 +30,7 @@ secrets:
 [![HF Space](https://img.shields.io/badge/🤗%20HuggingFace-Space-blue?style=flat-square)](https://huggingface.co/spaces)
 [![Hermes](https://img.shields.io/badge/Hermes-Agent-indigo?style=flat-square)](https://github.com/NousResearch/hermes-agent)
 
-**Self-hosted Hermes AI agent gateway — free, no server needed.** HuggingMess runs [Nous Research Hermes Agent](https://github.com/NousResearch/hermes-agent) on HuggingFace Spaces, providing a 24/7 personal AI assistant. It includes a premium management dashboard, automatic persistent backup to HF Datasets, and built-in connectivity fixes to bypass platform restrictions. Deploy in minutes on the free HF Spaces tier with full data persistence.
+**Self-hosted Hermes AI agent gateway — free, no server needed.** HuggingMes runs [Nous Research Hermes Agent](https://github.com/NousResearch/hermes-agent) on HuggingFace Spaces, providing a 24/7 personal AI assistant. It includes a premium management dashboard, automatic persistent backup to HF Datasets, and built-in connectivity fixes to bypass platform restrictions. Deploy in minutes on the free HF Spaces tier with full data persistence.
 
 ## Table of Contents
 
@@ -62,7 +62,7 @@ secrets:
 
 ### Step 1: Duplicate this Space
 
-[![Duplicate this Space](https://huggingface.co/datasets/huggingface/badges/resolve/main/duplicate-this-space-xl.svg)](https://huggingface.co/spaces/somratpro/HuggingMess?duplicate=true)
+[![Duplicate this Space](https://huggingface.co/datasets/huggingface/badges/resolve/main/duplicate-this-space-xl.svg)](https://huggingface.co/spaces/somratpro/HuggingMes?duplicate=true)
 
 ### Step 2: Add Your Secrets
 
@@ -74,18 +74,18 @@ Navigate to your new Space's **Settings → Variables and secrets**, and add the
 
 ### Step 3: Access Your Dashboard
 
-Once the build is complete, visit your Space's public URL. You will see the HuggingMess management dashboard. Click **Open Hermes UI** and enter your `GATEWAY_TOKEN` to access the agent interface.
+Once the build is complete, visit your Space's public URL. You will see the HuggingMes management dashboard. Click **Open Hermes UI** and enter your `GATEWAY_TOKEN` to access the agent interface.
 
 ## 🔐 Access Control
 
-Hermes' built-in dashboard is local-first. HuggingMess adds a secure wrapper:
+Hermes' built-in dashboard is local-first. HuggingMes adds a secure wrapper:
 
 - **Dashboard:** Opening `/app/` requires your `GATEWAY_TOKEN`.
 - **API:** Routes under `/v1/*` (OpenAI-compatible) require `Authorization: Bearer <GATEWAY_TOKEN>`.
 
 ## 🤖 LLM Providers
 
-HuggingMess automatically maps your `LLM_MODEL` and `LLM_API_KEY` to the correct Hermes configuration.
+HuggingMes automatically maps your `LLM_MODEL` and `LLM_API_KEY` to the correct Hermes configuration.
 
 | Provider | Prefix | Example `LLM_MODEL` |
 | :--- | :--- | :--- |
@@ -105,16 +105,16 @@ To use Hermes via Telegram:
 
 ## 🌐 Cloudflare Proxy
 
-HuggingFace Spaces often block outbound connections to external APIs. HuggingMess handles this automatically:
+HuggingFace Spaces often block outbound connections to external APIs. HuggingMes handles this automatically:
 
 1. Add `CLOUDFLARE_WORKERS_TOKEN` as a Space secret.
 2. Restart the Space.
 
-HuggingMess will auto-provision a Worker proxy for Telegram and other restricted traffic, and set up a keep-awake cron.
+HuggingMes will auto-provision a Worker proxy for Telegram and other restricted traffic, and set up a keep-awake cron.
 
 ## 💾 Backup & Persistence
 
-Set `HF_TOKEN` with **Write** access to enable backup. HuggingMess syncs all agent data to a private Dataset named `huggingmess-backup` every 180 seconds.
+Set `HF_TOKEN` with **Write** access to enable backup. HuggingMes syncs all agent data to a private Dataset named `huggingmes-backup` every 180 seconds.
 
 ## 💓 Staying Alive *(Recommended on Free HF Spaces)*
 

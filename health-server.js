@@ -14,11 +14,11 @@ const startTime = Date.now();
 const API_SERVER_KEY = process.env.API_SERVER_KEY || "";
 const APP_BASE = "/app";
 const LOGIN_PATH = "/login";
-const SESSION_COOKIE = "huggingmess_session";
+const SESSION_COOKIE = "huggingmes_session";
 
-const SYNC_STATUS_FILE = "/tmp/huggingmess-sync-status.json";
+const SYNC_STATUS_FILE = "/tmp/huggingmes-sync-status.json";
 const CLOUDFLARE_KEEPALIVE_STATUS_FILE =
-  "/tmp/huggingmess-cloudflare-keepalive-status.json";
+  "/tmp/huggingmes-cloudflare-keepalive-status.json";
 
 function canConnect(port, host = GATEWAY_HOST, timeoutMs = 600) {
   return new Promise((resolve) => {
@@ -54,7 +54,7 @@ function expectedSessionValue() {
   if (!API_SERVER_KEY) return "";
   return crypto
     .createHmac("sha256", API_SERVER_KEY)
-    .update("huggingmess-session-v1")
+    .update("huggingmes-session-v1")
     .digest("hex");
 }
 
@@ -122,7 +122,7 @@ function renderLoginPage(nextPath, errorMessage = "") {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>HuggingMess Login</title>
+  <title>HuggingMes Login</title>
   <style>
     :root { color-scheme: dark; --bg:#10141f; --panel:#171d2b; --line:#293246; --text:#f4f7fb; --muted:#9aa7bd; --bad:#ef4444; --accent:#38bdf8; }
     * { box-sizing:border-box; }
@@ -138,7 +138,7 @@ function renderLoginPage(nextPath, errorMessage = "") {
 </head>
 <body>
   <main>
-    <h1>Open HuggingMess</h1>
+    <h1>Open HuggingMes</h1>
     <p>Enter the <code>GATEWAY_TOKEN</code> from your Space secrets.</p>
     ${errorHtml}
     <form method="post" action="${LOGIN_PATH}">
@@ -410,7 +410,9 @@ function renderDashboard(data) {
   const telegramDetail = data.telegram.configured
     ? `${data.telegram.webhook ? "Webhook" : "Polling"}${data.telegram.proxy ? " via CF proxy" : ""}`
     : "Not configured";
-  const backupDetail = data.backup?.message ? escapeHtml(data.backup.message) : "No status yet";
+  const backupDetail = data.backup?.message
+    ? escapeHtml(data.backup.message)
+    : "No status yet";
   const keepAliveDetail = keepaliveConfigured
     ? `Pinging <code>${escapeHtml(data.keepalive.targetUrl || "/health")}</code>`
     : process.env.CLOUDFLARE_WORKERS_TOKEN
@@ -421,8 +423,13 @@ function renderDashboard(data) {
   const tiles = [
     renderTile({
       title: "Gateway",
-      value: toneBadge(data.gateway ? "Online" : "Offline", data.gateway ? "ok" : "off"),
-      detail: data.gateway ? `API on port ${data.ports.gateway}` : `Unreachable`,
+      value: toneBadge(
+        data.gateway ? "Online" : "Offline",
+        data.gateway ? "ok" : "off",
+      ),
+      detail: data.gateway
+        ? `API on port ${data.ports.gateway}`
+        : `Unreachable`,
       tone: data.gateway ? "ok" : "off",
       meta: data.authConfigured ? "Protected" : "Unprotected",
     }),
@@ -440,7 +447,10 @@ function renderDashboard(data) {
     }),
     renderTile({
       title: "Telegram",
-      value: toneBadge(data.telegram.configured ? "Configured" : "Disabled", telegramTone),
+      value: toneBadge(
+        data.telegram.configured ? "Configured" : "Disabled",
+        telegramTone,
+      ),
       detail: telegramDetail,
       tone: telegramTone,
     }),
@@ -452,7 +462,10 @@ function renderDashboard(data) {
     }),
     renderTile({
       title: "Keep Awake",
-      value: toneBadge(keepaliveConfigured ? "CF Cron" : keepaliveStatus.toUpperCase(), keepAliveTone),
+      value: toneBadge(
+        keepaliveConfigured ? "CF Cron" : keepaliveStatus.toUpperCase(),
+        keepAliveTone,
+      ),
       detail: keepAliveDetail,
       tone: keepAliveTone,
     }),
@@ -463,7 +476,7 @@ function renderDashboard(data) {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>HuggingMess</title>
+  <title>HuggingMes</title>
   <style>
     :root { color-scheme: dark; --bg:#08080f; --panel:#12111b; --panel2:#151421; --line:#26243a; --text:#f6f4ff; --muted:#7f7a9e; --soft:#b8b3d7; --good:#22c55e; --warn:#f5c542; --bad:#fb7185; --accent:#6557df; --accent2:#7c6cf2; }
     * { box-sizing:border-box; }
@@ -508,7 +521,7 @@ function renderDashboard(data) {
 <body>
   <main>
     <header>
-      <h1>HuggingMess</h1>
+      <h1>HuggingMes</h1>
       <div class="subtitle">Self-hosted - Hermes Agent</div>
     </header>
     <a class="hero-action" href="${APP_BASE}/" target="_blank" rel="noopener noreferrer">Open Hermes Agent -></a>
@@ -641,5 +654,5 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(`HuggingMess dashboard listening on 0.0.0.0:${PORT}`);
+  console.log(`HuggingMes dashboard listening on 0.0.0.0:${PORT}`);
 });

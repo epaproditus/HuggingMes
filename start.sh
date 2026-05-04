@@ -4,19 +4,19 @@ set -euo pipefail
 umask 0077
 
 # ════════════════════════════════════════════════════════════════
-# HuggingMess — Hermes Gateway for HF Spaces
+# HuggingMes — Hermes Gateway for HF Spaces
 # ════════════════════════════════════════════════════════════════
 
 # ── Startup Banner ──
-APP_DIR="${HUGGINGMESS_APP_DIR:-/opt/huggingmess}"
+APP_DIR="${HUGGINGMES_APP_DIR:-/opt/huggingmes}"
 HERMES_HOME="${HERMES_HOME:-/opt/data}"
 PUBLIC_PORT="${PORT:-7861}"
 GATEWAY_API_PORT="${API_SERVER_PORT:-8642}"
 DASHBOARD_PORT="${DASHBOARD_PORT:-9119}"
 TELEGRAM_WEBHOOK_PORT="${TELEGRAM_WEBHOOK_PORT:-8765}"
 SYNC_INTERVAL="${SYNC_INTERVAL:-180}"
-BACKUP_DATASET="${BACKUP_DATASET_NAME:-huggingmess-backup}"
-CF_PROXY_ENV_FILE="/tmp/huggingmess-cloudflare-proxy.env"
+BACKUP_DATASET="${BACKUP_DATASET_NAME:-huggingmes-backup}"
+CF_PROXY_ENV_FILE="/tmp/huggingmes-cloudflare-proxy.env"
 
 export HERMES_HOME
 export API_SERVER_ENABLED="${API_SERVER_ENABLED:-true}"
@@ -27,7 +27,7 @@ export TELEGRAM_WEBHOOK_PORT
 
 echo ""
 echo "  ╔══════════════════════════════════════════╗"
-echo "  ║        💬 HuggingMess Hermes Gateway     ║"
+echo "  ║        💬 HuggingMes Hermes Gateway      ║"
 echo "  ╚══════════════════════════════════════════╝"
 echo ""
 
@@ -85,7 +85,7 @@ if [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${SPACE_HOST:-}" ] && [ -z "${TELEG
 fi
 
 if [ -n "${TELEGRAM_WEBHOOK_URL:-}" ] && [ -z "${TELEGRAM_WEBHOOK_SECRET:-}" ]; then
-  SECRET_FILE="$HERMES_HOME/.huggingmess-telegram-webhook-secret"
+  SECRET_FILE="$HERMES_HOME/.huggingmes-telegram-webhook-secret"
   if [ -f "$SECRET_FILE" ]; then
     export TELEGRAM_WEBHOOK_SECRET
     TELEGRAM_WEBHOOK_SECRET="$(cat "$SECRET_FILE")"
@@ -274,7 +274,7 @@ echo ""
 
 # ── Trap SIGTERM for graceful shutdown ──
 graceful_shutdown() {
-  echo "Shutting down HuggingMess..."
+  echo "Shutting down HuggingMes..."
   if [ -n "${HF_TOKEN:-}" ]; then
     python3 "$APP_DIR/hermes-sync.py" sync-once || echo "Warning: shutdown sync failed."
   fi
@@ -293,7 +293,7 @@ import json, os, urllib.request
 body = json.dumps({
     "event": "restart",
     "status": "success",
-    "message": "HuggingMess Hermes gateway has started.",
+    "message": "HuggingMes Hermes gateway has started.",
     "model": os.environ.get("MODEL_FOR_CONFIG", ""),
 }).encode()
 req = urllib.request.Request(os.environ["WEBHOOK_URL"], data=body, method="POST", headers={"Content-Type": "application/json"})

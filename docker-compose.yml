@@ -1,10 +1,10 @@
 services:
-  huggingmess:
+  huggingmes:
     build:
       context: .
       args:
         HERMES_AGENT_VERSION: ${HERMES_AGENT_VERSION:-latest}
-    image: huggingmess:local
+    image: huggingmes:local
     ports:
       - "7861:7861"
     environment:
@@ -16,7 +16,7 @@ services:
       HF_TOKEN: ${HF_TOKEN:-}
       SPACE_HOST: ${SPACE_HOST:-localhost:7861}
     volumes:
-      - huggingmess-data:/opt/data
+      - huggingmes-data:/opt/data
 
 volumes:
-  huggingmess-data:
+  huggingmes-data:

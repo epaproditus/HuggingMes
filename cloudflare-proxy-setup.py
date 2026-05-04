@@ -13,8 +13,8 @@ import urllib.request
 from pathlib import Path
 
 API_BASE = "https://api.cloudflare.com/client/v4"
-ENV_FILE = Path("/tmp/huggingmess-cloudflare-proxy.env")
-ENV_FILE = Path("/tmp/huggingmess-cloudflare-proxy.env")
+ENV_FILE = Path("/tmp/huggingmes-cloudflare-proxy.env")
+ENV_FILE = Path("/tmp/huggingmes-cloudflare-proxy.env")
 DEFAULT_ALLOWED = [
     "api.telegram.org",
     "discord.com",
@@ -52,7 +52,7 @@ def cf_request(method: str, path: str, token: str, body: bytes | None = None, co
 def slugify(value: str) -> str:
     cleaned = re.sub(r"[^a-z0-9-]+", "-", value.lower()).strip("-")
     cleaned = re.sub(r"-{2,}", "-", cleaned)
-    return (cleaned or "huggingmess-proxy")[:63].rstrip("-")
+    return (cleaned or "huggingmes-proxy")[:63].rstrip("-")
 
 
 def derive_worker_name() -> str:
@@ -62,7 +62,7 @@ def derive_worker_name() -> str:
     space_host = os.environ.get("SPACE_HOST", "").strip()
     if space_host:
         return slugify(f"{space_host.replace('.hf.space', '')}-proxy")
-    return "huggingmess-proxy"
+    return "huggingmes-proxy"
 
 
 def render_worker(secret_value: str, allowed_targets: list[str], allow_proxy_all: bool) -> str:
